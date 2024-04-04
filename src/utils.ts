@@ -8,6 +8,8 @@ const SIGN_IN_REGEX_STR =
   `^(?<appName>.{0,100}?)[ ]?would like you to sign in with your DePlan account:
         (?<address>[5KL1-9A-HJ-NP-Za-km-z]{32,44})
 
+        I agree to Sign In to (?<clientAddress>[5KL1-9A-HJ-NP-Za-km-z]{32,44})
+
         Domain: (?<domain>[A-Za-z0-9.\\-]+)
         Requested At: (?<requestedAt>.+)
         Nonce: (?<nonce>[A-Za-z0-9\-\.]+)$`

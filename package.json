@@ -17,18 +17,21 @@
     "release": "npm run build && release-it"
   },
   "dependencies": {
+    "@solana/wallet-standard-features": "^1.2.0",
     "@wallet-standard/base": "^1.0.1",
     "bs58": "^5.0.0",
     "buffer": "^6.0.3",
     "eventemitter3": "^5.0.0",
     "luxon": "^3.0.4",
     "tweetnacl": "^1.0.3",
+    "uuid4": "^2.0.3",
     "zod": "^3.19.1"
   },
   "devDependencies": {
     "@solana/web3.js": "^1.63.1",
     "@types/jest": "^29.2.3",
     "@types/luxon": "^3.1.0",
+    "@types/uuid4": "^2.0.3",
     "@typescript-eslint/parser": "^5.45.0",
     "esbuild": "^0.15.17",
     "esbuild-register": "^3.4.1",
