@@ -2,14 +2,17 @@ import EventEmitter from "eventemitter3";
 import { verifySignIn } from "./utils";
 import { Address, DePlanAdapter, SolanaWindow } from "./window-types";
 import { encode } from "bs58";
+import uuid4 from "uuid4";
 
 export class DePlanClient extends EventEmitter {
   public _address: Address | null;
+  public _clientAddress: Address | null;
   public _wallet: DePlanAdapter | null;
 
-  constructor(clientAddress: string) {
+  constructor(clientAddress: Address) {
     super();
 
+    this._clientAddress = clientAddress;
     this._address = null;
     this._wallet = null;
 
@@ -39,8 +42,13 @@ export class DePlanClient extends EventEmitter {
     if (!this._wallet) {
       throw new Error("Not loaded.");
     }
-
-    const { account, signature, signedMessage } = await this._wallet.signIn();
+    const domain = window.location.hostname.replace(/^www\./, '');
+    const { account, signature, signedMessage } = await this._wallet.signIn({
+      domain,
+      statement: this._clientAddress as string,
+      nonce: uuid4(),
+      issuedAt: new Date().toISOString(),
+    });
     const message = new TextDecoder().decode(signedMessage);
 
     this._address = account.address;
@@ -48,7 +56,7 @@ export class DePlanClient extends EventEmitter {
     verifySignIn({
       message,
       expectedAddress: account.address,
-      expectedDomain: window.location.hostname.replace(/^www\./, ''),
+      expectedDomain: domain,
       signature: signature,
     });
 
