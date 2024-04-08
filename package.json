@@ -25,10 +25,10 @@
     "luxon": "^3.0.4",
     "tweetnacl": "^1.0.3",
     "uuid4": "^2.0.3",
-    "zod": "^3.19.1"
+    "zod": "^3.19.1",
+    "@solana/web3.js": "^1.63.1"
   },
   "devDependencies": {
-    "@solana/web3.js": "^1.63.1",
     "@types/jest": "^29.2.3",
     "@types/luxon": "^3.1.0",
     "@types/uuid4": "^2.0.3",
