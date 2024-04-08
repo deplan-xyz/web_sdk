@@ -15,7 +15,7 @@ yarn add deplan-client
 ## Usage
 
 ```ts
-import { DePlanClient } from "deplan-client";
+import { DePlanClient } from 'deplan-client';
 
 const deplanClient = new DePlanClient('PRODUCT_WALLET_ADDRESS');
 
@@ -29,7 +29,7 @@ const { address, signedTransaction, message } = await deplanClient.signIn();
 Then you should pass **signedTransaction** to your backend to verify the signIn operation.
 
 ```ts
-import { DePlanClient } from "deplan-client";
+import { DePlanClient } from 'deplan-client';
 
 const deplanClient = new DePlanClient('PRODUCT_WALLET_ADDRESS');
 
