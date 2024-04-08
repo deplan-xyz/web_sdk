@@ -15,7 +15,7 @@ export interface DePlanAdapter extends EventEmitter {
   signIn: (input?: SolanaSignInInput) => Promise<{
     account: WalletAccount,
     signedMessage: Uint8Array,
-    signature: Uint8Array,
+    signedTransaction: string,
   }>;
   connect: (params?: { onlyIfTrusted: true }) => Promise<{
     address: Address;

@@ -3,6 +3,7 @@ import { Buffer } from "buffer";
 import { DateTime, Duration } from "luxon";
 import { sign } from "tweetnacl";
 import { Address } from "./window-types";
+import { Transaction } from "@solana/web3.js";
 
 const SIGN_IN_REGEX_STR =
   `^(?<appName>.{0,100}?)[ ]?would like you to sign in with your DePlan account:
@@ -21,29 +22,7 @@ const DEFAULT_MAX_ALLOWED_TIME_DIFF_MS = Duration.fromObject({
   minutes: 10,
 }).toMillis();
 
-export const verifySignIn = ({
-  message,
-  expectedDomain,
-  expectedAddress,
-  maxAllowedTimeDiffMs = DEFAULT_MAX_ALLOWED_TIME_DIFF_MS,
-  ...params
-}: {
-  message: string;
-  signature: Uint8Array,
-  expectedDomain: string | string[];
-  expectedAddress: Address;
-  maxAllowedTimeDiffMs?: number;
-}): {
-  appName: string;
-  domain: string;
-  address: Address;
-  nonce: string;
-  requestedAt: DateTime;
-} => {
-  if (!expectedAddress) {
-    throw new Error("Missing expected address.");
-  }
-
+export const parseMessage = (message: string) => {
   const match = message.match(SIGN_IN_REGEX);
 
   if (!match || !match.groups) {
@@ -54,11 +33,57 @@ export const verifySignIn = ({
     appName,
     domain,
     address,
-    nonce: _nonce,
-    requestedAt: _requestedAt,
+    nonce,
+    requestedAt,
+    clientAddress,
   } = match.groups;
-  const nonce = _nonce;
-  const requestedAt = DateTime.fromISO(_requestedAt).toUTC();
+
+  return {
+    appName,
+    domain,
+    address,
+    nonce,
+    requestedAt,
+    clientAddress,
+  };
+};
+
+export const verifyRecent = (requestedAt: string) => {
+  const _requestedAt = DateTime.fromISO(requestedAt).toUTC();
+  const timeDiff = DateTime.now().diff(_requestedAt);
+  if (Math.abs(timeDiff.toMillis()) > DEFAULT_MAX_ALLOWED_TIME_DIFF_MS) {
+    throw new Error("Message is not recent.");
+  }
+};
+
+export const verifySignInClient = ({
+  message,
+  expectedDomain,
+  expectedAddress,
+  signedTransaction,
+}: {
+  message: string;
+  expectedDomain: string | string[];
+  expectedAddress: Address;
+  signedTransaction: string,
+}): {
+  appName: string;
+  domain: string;
+  address: Address;
+  nonce: string;
+  requestedAt: string;
+} => {
+  if (!expectedAddress) {
+    throw new Error("Missing expected address.");
+  }
+
+  const {
+    appName,
+    domain,
+    address,
+    nonce,
+    requestedAt,
+  } = parseMessage(message);
 
   if (Array.isArray(expectedDomain)) {
     if (expectedDomain.indexOf(domain) === -1) {
@@ -74,13 +99,25 @@ export const verifySignIn = ({
     throw new Error("Address does not match expected address.");
   }
 
-  const timeDiff = DateTime.now().diff(requestedAt);
-  if (Math.abs(timeDiff.toMillis()) > maxAllowedTimeDiffMs) {
-    throw new Error("Message is not recent.");
+  verifyRecent(requestedAt);
+
+  const {
+    messageFromTx,
+    signature,
+    cmsg,
+  } = parseTransaction({ transaction: signedTransaction, signer: address });
+
+  if (messageFromTx !== message) {
+    throw new Error(
+      "The transaction message does not match the message passed in."
+    );
   }
 
-
-  verifySignature({ signature: params.signature!, message, signer: address });
+  verifySignature({
+    signature,
+    messageBuffer: cmsg.serialize(),
+    signer: address,
+  });
 
   return {
     appName,
@@ -88,6 +125,29 @@ export const verifySignIn = ({
     address,
     nonce,
     requestedAt,
+  };
+};
+
+export const parseTransaction = ({
+  transaction,
+  signer,
+}: {
+  transaction: string,
+  signer: string,
+}) => {
+  const parsedTransaction = Transaction.from(Buffer.from(transaction, 'base64'));
+  const cmsg = parsedTransaction.compileMessage();
+
+  const messageFromTx = parsedTransaction.instructions[0].data.toString("utf-8");
+
+  const signature = parsedTransaction.signatures.find(
+    (s) => s.publicKey.toBase58() === signer
+  )!.signature!;
+
+  return {
+    cmsg,
+    messageFromTx,
+    signature,
   };
 };
 
@@ -110,9 +170,9 @@ export const verifySignature = ({
 
   let messageUint: Uint8Array;
   if ("message" in params) {
-    messageUint = new Uint8Array(Buffer.from(params.message));
+    messageUint = Buffer.from(params.message);
   } else {
-    messageUint = new Uint8Array(params.messageBuffer);
+    messageUint = params.messageBuffer;
   }
 
   if (!sign.detached.verify(messageUint, signature, addressUint)) {

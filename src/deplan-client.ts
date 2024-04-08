@@ -1,7 +1,6 @@
 import EventEmitter from "eventemitter3";
-import { verifySignIn } from "./utils";
+import { parseMessage, parseTransaction, verifyRecent, verifySignInClient, verifySignature } from "./utils";
 import { Address, DePlanAdapter, SolanaWindow } from "./window-types";
-import { encode } from "bs58";
 import uuid4 from "uuid4";
 
 export class DePlanClient extends EventEmitter {
@@ -37,13 +36,13 @@ export class DePlanClient extends EventEmitter {
   async signIn(): Promise<{
     address: Address;
     message: string;
-    signature: string;
+    signedTransaction: string;
   }> {
     if (!this._wallet) {
       throw new Error("Not loaded.");
     }
     const domain = window.location.hostname.replace(/^www\./, '');
-    const { account, signature, signedMessage } = await this._wallet.signIn({
+    const { account, signedTransaction, signedMessage } = await this._wallet.signIn({
       domain,
       statement: this._clientAddress as string,
       nonce: uuid4(),
@@ -53,16 +52,16 @@ export class DePlanClient extends EventEmitter {
 
     this._address = account.address;
 
-    verifySignIn({
+    verifySignInClient({
       message,
       expectedAddress: account.address,
       expectedDomain: domain,
-      signature: signature,
+      signedTransaction,
     });
 
     return {
       address: account.address,
-      signature: encode(signature),
+      signedTransaction,
       message,
     };
   }
@@ -76,5 +75,30 @@ export class DePlanClient extends EventEmitter {
     this._address = address;
 
     return { address };
+  }
+
+  verifySignIn(transaction: string, deplanAddress: string) {
+    const {
+      messageFromTx,
+      signature,
+      cmsg,
+    } = parseTransaction({ transaction, signer: deplanAddress });
+
+    const {
+      requestedAt,
+      clientAddress,
+    } = parseMessage(messageFromTx);
+
+    if (this._clientAddress !== clientAddress) {
+      throw new Error("Client address does not match expected address.");
+    }
+
+    verifyRecent(requestedAt);
+
+    verifySignature({
+      signature,
+      messageBuffer: cmsg.serialize(),
+      signer: deplanAddress,
+    });
   }
 }
