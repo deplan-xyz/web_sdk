@@ -1,4 +1,3 @@
-import type { PublicKey } from "@solana/web3.js";
 import EventEmitter from "eventemitter3";
 import { WalletAccount } from "@wallet-standard/base";
 import { z } from "zod";
@@ -10,12 +9,11 @@ export type Address = z.infer<typeof AddressZ>;
 
 export interface DePlanAdapter extends EventEmitter {
   address: Address | null;
-  publicKey: PublicKey | null;
 
   signIn: (input?: SolanaSignInInput) => Promise<{
     account: WalletAccount,
     signedMessage: Uint8Array,
-    signedTransaction: string,
+    signatures: Uint8Array[],
   }>;
   connect: (params?: { onlyIfTrusted: true }) => Promise<{
     address: Address;
