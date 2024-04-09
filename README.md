@@ -23,18 +23,23 @@ const deplanClient = new DePlanClient('PRODUCT_WALLET_ADDRESS');
 const { address } = await deplanClient.connect();
 
 // Sign In
-const { address, signedTransaction, message } = await deplanClient.signIn();
+const { address, signature, message } = await deplanClient.signIn();
 ```
 
-Then you should pass **signedTransaction** to your backend to verify the signIn operation.
+### ``signIn`` returns
+``address`` - user wallet address
+``signature`` - signature issued by DePlan
+``message`` - message that was signed
+
+Then you should pass **message** and **signature** to your backend to verify the signIn operation.
 
 ```ts
 import { DePlanClient } from 'deplan-client';
 
 const deplanClient = new DePlanClient('PRODUCT_WALLET_ADDRESS');
 
-deplanClient.verifySignIn(req.body.signedTransaction, 'DEPLAN_WALLET_ADDRESS');
+deplanClient.verifySignIn(req.body.message, req.body.signature, 'DEPLAN_WALLET_ADDRESS');
 ```
 
-**PRODUCT_WALLET_ADDRESS** - the address of your organization in DePlan Connect.
-**DEPLAN_WALLET_ADDRESS** - the one and only DePlan address which is ``7qUPhUmL6nNTWU7yMsWueR778SYbNhBU2B2tqddfns6j``.
+``PRODUCT_WALLET_ADDRESS`` - the address of your organization in DePlan Connect.
+``DEPLAN_WALLET_ADDRESS`` - the one and only DePlan wallet address which is ``7qUPhUmL6nNTWU7yMsWueR778SYbNhBU2B2tqddfns6j``.
