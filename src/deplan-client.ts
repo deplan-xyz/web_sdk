@@ -1,7 +1,8 @@
 import EventEmitter from "eventemitter3";
-import { parseMessage, parseTransaction, verifyRecent, verifySignInClient, verifySignature } from "./utils";
+import { parseMessage, verifyRecent, verifySignInClient, verifySignature } from "./utils";
 import { Address, DePlanAdapter, SolanaWindow } from "./window-types";
 import uuid4 from "uuid4";
+import { decode, encode } from "bs58";
 
 export class DePlanClient extends EventEmitter {
   public _address: Address | null;
@@ -36,13 +37,13 @@ export class DePlanClient extends EventEmitter {
   async signIn(): Promise<{
     address: Address;
     message: string;
-    signedTransaction: string;
+    signature: string;
   }> {
     if (!this._wallet) {
       throw new Error("Not loaded.");
     }
     const domain = window.location.hostname.replace(/^www\./, '');
-    const { account, signedTransaction, signedMessage } = await this._wallet.signIn({
+    const { account, signatures, signedMessage } = await this._wallet.signIn({
       domain,
       statement: this._clientAddress as string,
       nonce: uuid4(),
@@ -56,12 +57,12 @@ export class DePlanClient extends EventEmitter {
       message,
       expectedAddress: account.address,
       expectedDomain: domain,
-      signedTransaction,
+      signature: signatures[0],
     });
 
     return {
       address: account.address,
-      signedTransaction,
+      signature: encode(signatures[1]),
       message,
     };
   }
@@ -77,17 +78,11 @@ export class DePlanClient extends EventEmitter {
     return { address };
   }
 
-  verifySignIn(transaction: string, deplanAddress: string) {
-    const {
-      messageFromTx,
-      signature,
-      cmsg,
-    } = parseTransaction({ transaction, signer: deplanAddress });
-
+  verifySignIn(message: string, signature: string, deplanAddress: string) {
     const {
       requestedAt,
       clientAddress,
-    } = parseMessage(messageFromTx);
+    } = parseMessage(message);
 
     if (this._clientAddress !== clientAddress) {
       throw new Error("Client address does not match expected address.");
@@ -96,8 +91,8 @@ export class DePlanClient extends EventEmitter {
     verifyRecent(requestedAt);
 
     verifySignature({
-      signature,
-      messageBuffer: cmsg.serialize(),
+      signature: decode(signature),
+      message,
       signer: deplanAddress,
     });
   }

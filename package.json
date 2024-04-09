@@ -1,6 +1,6 @@
 {
   "name": "deplan-client",
-  "version": "1.1.2",
+  "version": "1.1.8",
   "description": "",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",

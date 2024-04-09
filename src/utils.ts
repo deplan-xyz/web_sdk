@@ -3,7 +3,6 @@ import { Buffer } from "buffer";
 import { DateTime, Duration } from "luxon";
 import { sign } from "tweetnacl";
 import { Address } from "./window-types";
-import { Transaction } from "@solana/web3.js";
 
 const SIGN_IN_REGEX_STR =
   `^(?<appName>.{0,100}?)[ ]?would like you to sign in with your DePlan account:
@@ -60,12 +59,12 @@ export const verifySignInClient = ({
   message,
   expectedDomain,
   expectedAddress,
-  signedTransaction,
+  signature,
 }: {
   message: string;
   expectedDomain: string | string[];
   expectedAddress: Address;
-  signedTransaction: string,
+  signature: Uint8Array,
 }): {
   appName: string;
   domain: string;
@@ -101,21 +100,9 @@ export const verifySignInClient = ({
 
   verifyRecent(requestedAt);
 
-  const {
-    messageFromTx,
-    signature,
-    cmsg,
-  } = parseTransaction({ transaction: signedTransaction, signer: address });
-
-  if (messageFromTx !== message) {
-    throw new Error(
-      "The transaction message does not match the message passed in."
-    );
-  }
-
   verifySignature({
     signature,
-    messageBuffer: cmsg.serialize(),
+    message,
     signer: address,
   });
 
@@ -125,29 +112,6 @@ export const verifySignInClient = ({
     address,
     nonce,
     requestedAt,
-  };
-};
-
-export const parseTransaction = ({
-  transaction,
-  signer,
-}: {
-  transaction: string,
-  signer: string,
-}) => {
-  const parsedTransaction = Transaction.from(Buffer.from(transaction, 'base64'));
-  const cmsg = parsedTransaction.compileMessage();
-
-  const messageFromTx = parsedTransaction.instructions[0].data.toString("utf-8");
-
-  const signature = parsedTransaction.signatures.find(
-    (s) => s.publicKey.toBase58() === signer
-  )!.signature!;
-
-  return {
-    cmsg,
-    messageFromTx,
-    signature,
   };
 };
 
