@@ -3,8 +3,11 @@ import { parseMessage, verifyRecent, verifySignInClient, verifySignature } from 
 import { Address, DePlanAdapter, SolanaWindow } from "./window-types";
 import uuid4 from "uuid4";
 import { decode, encode } from "bs58";
+import { WalletAccount } from "@wallet-standard/base";
+import { Buffer } from "buffer";
 
 export class DePlanClient extends EventEmitter {
+  public _account: WalletAccount | null;
   public _address: Address | null;
   public _clientAddress: Address | null;
   public _wallet: DePlanAdapter | null;
@@ -12,6 +15,7 @@ export class DePlanClient extends EventEmitter {
   constructor(clientAddress: Address) {
     super();
 
+    this._account = null;
     this._clientAddress = clientAddress;
     this._address = null;
     this._wallet = null;
@@ -51,6 +55,7 @@ export class DePlanClient extends EventEmitter {
     });
     const message = new TextDecoder().decode(signedMessage);
 
+    this._account = account;
     this._address = account.address;
 
     verifySignInClient({
@@ -95,5 +100,26 @@ export class DePlanClient extends EventEmitter {
       message,
       signer: deplanAddress,
     });
+  }
+
+  async signTransaction({
+    transaction,
+  }: {
+    transaction: string;
+  }): Promise<{ signedTransaction: string }> {
+    if (!this._wallet) {
+      throw new Error("Not connected.");
+    }
+    if (!this._account) {
+      throw new Error("Not authorized.");
+    }
+
+    const wallet = this._wallet;
+
+    const result = await wallet.signTransaction({
+      account: this._account!,
+      transaction: Buffer.from(transaction, 'base64'),
+    });
+    return { signedTransaction: Buffer.from(result.signedTransaction).toString('base64') };
   }
 }
