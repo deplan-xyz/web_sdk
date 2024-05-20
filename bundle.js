@@ -1,7 +1,7 @@
-import esbuildPluginTsc from 'esbuild-plugin-tsc';
-import * as esbuild from 'esbuild';
+const esbuildPluginTsc = require('esbuild-plugin-tsc');
+const esbuild = require('esbuild');
 
-export function createBuildSettings(options) {
+function createBuildSettings(options) {
   return {
     entryPoints: ['src/index.ts'],
     outfile: 'dist/deplan-client.min.js',
@@ -15,6 +15,8 @@ export function createBuildSettings(options) {
   };
 }
 
-const settings = createBuildSettings({ minify: false });
+const settings = createBuildSettings({ minify: true });
 
-await esbuild.build(settings);
+(async () => {
+  await esbuild.build(settings);
+})();
